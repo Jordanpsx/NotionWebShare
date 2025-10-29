@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Gestor Notion</title>
+    <style>
+        /* Estilos mínimos para não ficar feio */
+        body { font-family: sans-serif; background-color: #f4f4f4; margin: 20px; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; }
+        .tarefa { border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        .tarefa:last-child { border: 0; }
+        .tarefa span { font-size: 1.1em; }
+        .botoes button { margin-left: 10px; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-fazer { background-color: #f0ad4e; color: white; }
+        .btn-concluido { background-color: #5cb85c; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Minhas Tarefas do Notion</h1>
+        <div id="lista-tarefas">Carregando tarefas...</div>
+    </div>
+
+<body>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>Minhas Tarefas do Notion</h1>
+            <a href="{{ url_for('logout') }}">Sair (Logout)</a>
+        </div>
+        <div id="lista-tarefas">Carregando tarefas...</div>
+    </div>
+
+    <script>
+        // Quando a página terminar de carregar, execute a função carregarTarefas
+        document.addEventListener('DOMContentLoaded', function() {
+            carregarTarefas();
+        });
+
+        // --- 1. FUNÇÃO PARA BUSCAR E EXIBIR AS TAREFAS (READ) ---
+        async function carregarTarefas() {
+            try {
+                // Chama a nossa API de "leitura" que já testamos
+                const response = await fetch('/api/tarefas');
+                const data = await response.json();
+
+                const listaDiv = document.getElementById('lista-tarefas');
+                listaDiv.innerHTML = ''; // Limpa a mensagem "Carregando..."
+
+                // Itera sobre cada tarefa retornada pela API
+                data.tarefas.forEach(task => {
+                    // Extrai o nome da tarefa e o ID da página
+                    // O '?' (optional chaining) evita erros se a propriedade não existir
+                    const nomeTarefa = task.properties?.['Nome da Tarefa']?.title[0]?.plain_text || 'Tarefa sem nome';
+                    const statusAtual = task.properties?.Status?.select?.name || 'Sem Status';
+                    const pageId = task.id;
+
+                    // Cria o HTML para cada tarefa
+                    const tarefaHtml = `
+                        <div class="tarefa">
+                            <span>${nomeTarefa} (Status: <strong>${statusAtual}</strong>)</span>
+                            <div class="botoes">
+                                <button class="btn-fazer" onclick="atualizarStatus('${pageId}', 'A Fazer')">A Fazer</button>
+                                <button class="btn-concluido" onclick="atualizarStatus('${pageId}', 'Concluído')">Concluído</button>
+                            </div>
+                        </div>
+                    `;
+                    listaDiv.innerHTML += tarefaHtml;
+                });
+
+            } catch (error) {
+                console.error('Erro ao carregar tarefas:', error);
+                document.getElementById('lista-tarefas').innerText = 'Erro ao carregar tarefas.';
+            }
+        }
+
+        // --- 2. FUNÇÃO PARA ATUALIZAR O STATUS (UPDATE) ---
+        async function atualizarStatus(pageId, novoStatus) {
+            try {
+                // Chama a nossa NOVA rota de API (/api/tarefa/atualizar_status)
+                const response = await fetch('/api/tarefa/atualizar_status', {
+                    method: 'POST', // Informa que é um método POST
+                    headers: {
+                        'Content-Type': 'application/json', // Informa que estamos enviando JSON
+                    },
+                    body: JSON.stringify({
+                        page_id: pageId,
+                        new_status: novoStatus
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.sucesso) {
+                    // Se a API retornar sucesso, recarrega a lista de tarefas
+                    carregarTarefas();
+                } else {
+                    alert('Erro ao atualizar tarefa: ' + data.erro);
+                }
+
+            } catch (error) {
+                console.error('Erro ao atualizar status:', error);
+                alert('Erro de conexão ao atualizar status.');
+            }
+        }
+    </script>
+</body>
+</html>
