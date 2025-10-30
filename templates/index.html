@@ -7,7 +7,14 @@
     <style>
         /* Estilos mínimos para não ficar feio */
         body { font-family: sans-serif; background-color: #f4f4f4; margin: 20px; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* Estilos do Formulário de Criação (Ação #12) */
+        .form-criar { display: flex; margin-bottom: 20px; }
+        .form-criar input { flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; }
+        .form-criar button { margin-left: 10px; padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+
+        /* Estilos da Lista de Tarefas */
         .tarefa { border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
         .tarefa:last-child { border: 0; }
         .tarefa span { font-size: 1.1em; }
@@ -19,30 +26,45 @@
 <body>
 
     <div class="container">
-        <h1>Minhas Tarefas do Notion</h1>
-        <div id="lista-tarefas">Carregando tarefas...</div>
-    </div>
-
-<body>
-
-    <div class="container">
+        
+        <!-- Cabeçalho com link de Logout (Ação #10) -->
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h1>Minhas Tarefas do Notion</h1>
             <a href="{{ url_for('logout') }}">Sair (Logout)</a>
         </div>
+
+        <!-- Formulário de Criação de Tarefa (Ação #12) -->
+        <div class="form-criar">
+            <input type="text" id="nome-nova-tarefa" placeholder="Digite o nome da nova tarefa...">
+            <button id="btn-criar-tarefa">Criar Tarefa</button>
+        </div>
+        <hr style="margin: 20px 0;">
+
+        <!-- Div onde o JavaScript vai carregar as tarefas -->
         <div id="lista-tarefas">Carregando tarefas...</div>
+
     </div>
 
+    <!-- 
+      Todo o nosso JavaScript fica aqui.
+      Ele não precisa de um arquivo separado.
+    -->
     <script>
-        // Quando a página terminar de carregar, execute a função carregarTarefas
+        // Quando a página terminar de carregar, execute as funções iniciais
         document.addEventListener('DOMContentLoaded', function() {
+            // 1. Carrega as tarefas do usuário
             carregarTarefas();
+            
+            // 2. Adiciona o "escutador" de clique no novo botão (Ação #14)
+            document.getElementById('btn-criar-tarefa').addEventListener('click', function() {
+                criarNovaTarefa();
+            });
         });
 
         // --- 1. FUNÇÃO PARA BUSCAR E EXIBIR AS TAREFAS (READ) ---
         async function carregarTarefas() {
             try {
-                // Chama a nossa API de "leitura" que já testamos
+                // Chama a nossa API de "leitura"
                 const response = await fetch('/api/tarefas');
                 const data = await response.json();
 
@@ -52,7 +74,6 @@
                 // Itera sobre cada tarefa retornada pela API
                 data.tarefas.forEach(task => {
                     // Extrai o nome da tarefa e o ID da página
-                    // O '?' (optional chaining) evita erros se a propriedade não existir
                     const nomeTarefa = task.properties?.['Nome da Tarefa']?.title[0]?.plain_text || 'Tarefa sem nome';
                     const statusAtual = task.properties?.Status?.select?.name || 'Sem Status';
                     const pageId = task.id;
@@ -79,11 +100,11 @@
         // --- 2. FUNÇÃO PARA ATUALIZAR O STATUS (UPDATE) ---
         async function atualizarStatus(pageId, novoStatus) {
             try {
-                // Chama a nossa NOVA rota de API (/api/tarefa/atualizar_status)
+                // Chama a nossa rota de API de "update"
                 const response = await fetch('/api/tarefa/atualizar_status', {
-                    method: 'POST', // Informa que é um método POST
+                    method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json', // Informa que estamos enviando JSON
+                        'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         page_id: pageId,
@@ -103,6 +124,44 @@
             } catch (error) {
                 console.error('Erro ao atualizar status:', error);
                 alert('Erro de conexão ao atualizar status.');
+            }
+        }
+
+        // --- 3. FUNÇÃO PARA CRIAR NOVA TAREFA (CREATE) ---
+        // (Esta era a parte que faltava no seu JavaScript - Ação #14)
+        async function criarNovaTarefa() {
+            const inputTarefa = document.getElementById('nome-nova-tarefa');
+            const nomeTarefa = inputTarefa.value; // Pega o texto do campo
+
+            if (!nomeTarefa) {
+                alert('Por favor, digite o nome da tarefa.');
+                return;
+            }
+
+            try {
+                // Chama a nossa NOVA rota de API (/api/tarefa/criar)
+                const response = await fetch('/api/tarefa/criar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        nome_tarefa: nomeTarefa // Envia o nome da tarefa no JSON
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.sucesso) {
+                    inputTarefa.value = ''; // Limpa o campo de texto
+                    carregarTarefas(); // Recarrega a lista para mostrar a nova tarefa
+                } else {
+                    alert('Erro ao criar tarefa: ' + data.erro);
+                }
+
+            } catch (error) {
+                console.error('Erro ao criar tarefa:', error);
+                alert('Erro de conexão ao criar tarefa.');
             }
         }
     </script>
