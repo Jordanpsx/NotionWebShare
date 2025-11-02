@@ -5,165 +5,240 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Gestor Notion</title>
     <style>
-        /* Estilos mínimos para não ficar feio */
-        body { font-family: sans-serif; background-color: #f4f4f4; margin: 20px; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        /* --- ESTILOS GERAIS E RESPONSIVIDADE (Ação #3) --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f7f7f7;
+            margin: 0;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 20px;
+        }
         
-        /* Estilos do Formulário de Criação (Ação #12) */
-        .form-criar { display: flex; margin-bottom: 20px; }
-        .form-criar input { flex-grow: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; }
-        .form-criar button { margin-left: 10px; padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        /* --- CABEÇALHO --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+        .header a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: 500;
+        }
 
-        /* Estilos da Lista de Tarefas */
-        .tarefa { border-bottom: 1px solid #eee; padding: 10px 0; display: flex; justify-content: space-between; align-items: center; }
-        .tarefa:last-child { border: 0; }
-        .tarefa span { font-size: 1.1em; }
-        .botoes button { margin-left: 10px; padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-fazer { background-color: #f0ad4e; color: white; }
-        .btn-concluido { background-color: #5cb85c; color: white; }
+        /* --- FORMULÁRIO DE CRIAÇÃO (UI Melhorada - Ação #2) --- */
+        .form-criar {
+            display: flex;
+            margin-bottom: 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .form-criar input {
+            flex-grow: 1;
+            padding: 15px;
+            border: none;
+            font-size: 1em;
+            outline: none;
+        }
+        .form-criar button {
+            padding: 0 25px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .form-criar button:hover {
+            background: #0056b3;
+        }
+
+        /* --- QUADRO KANBAN (Ação #1) --- */
+        #kanban-board {
+            display: grid;
+            /* Em telas grandes, 3 colunas iguais */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .kanban-coluna {
+            background-color: #f0f0f0;
+            border-radius: 8px;
+            padding: 15px;
+            /* Altura mínima para colunas vazias não colapsarem */
+            min-height: 400px; 
+        }
+        
+        .kanban-coluna h3 {
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* --- CARD DE TAREFA (UI Melhorada - Ação #2) --- */
+        .tarefa-card {
+            background: #fff;
+            border-radius: 6px;
+            padding: 15px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        
+        .tarefa-card span {
+            font-size: 1.1em;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 12px;
+        }
+        
+        .botoes button {
+            margin-right: 5px;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: opacity 0.2s;
+        }
+        .botoes button:hover {
+            opacity: 0.8;
+        }
+
+        /* Cores dos botões */
+        .btn-fazer { background-color: #ffc107; color: #333; }
+        .btn-andamento { background-color: #007bff; color: white; }
+        .btn-concluido { background-color: #28a745; color: white; }
+        
+        /* --- RESPONSIVIDADE (Ação #3) --- */
+        @media (max-width: 768px) {
+            #kanban-board {
+                /* Em telas pequenas, empilha as colunas (1 coluna) */
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .form-criar {
+                flex-direction: column;
+            }
+            .form-criar button {
+                padding: 15px;
+            }
+        }
+
     </style>
 </head>
 <body>
 
     <div class="container">
         
-        <!-- Cabeçalho com link de Logout (Ação #10) -->
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>Minhas Tarefas do Notion</h1>
+        <div class="header">
+            <h1>Minhas Tarefas</h1>
             <a href="{{ url_for('logout') }}">Sair (Logout)</a>
         </div>
 
-        <!-- Formulário de Criação de Tarefa (Ação #12) -->
         <div class="form-criar">
             <input type="text" id="nome-nova-tarefa" placeholder="Digite o nome da nova tarefa...">
             <button id="btn-criar-tarefa">Criar Tarefa</button>
         </div>
-        <hr style="margin: 20px 0;">
 
-        <!-- Div onde o JavaScript vai carregar as tarefas -->
-        <div id="lista-tarefas">Carregando tarefas...</div>
+        <div id="kanban-board">
+            
+            <div class="kanban-coluna" id="coluna-a-fazer">
+                <h3>A Fazer</h3>
+                <div class="tasks-container" id="tasks-a-fazer">
+                    </div>
+            </div>
+
+            <div class="kanban-coluna" id="coluna-em-andamento">
+                <h3>Em Andamento</h3>
+                <div class="tasks-container" id="tasks-em-andamento">
+                    </div>
+            </div>
+
+            <div class="kanban-coluna" id="coluna-concluido">
+                <h3>Concluído</h3>
+                <div class="tasks-container" id="tasks-concluido">
+                    </div>
+            </div>
+
+        </div>
 
     </div>
 
-    <!-- 
-      Todo o nosso JavaScript fica aqui.
-      Ele não precisa de um arquivo separado.
-    -->
     <script>
         // Quando a página terminar de carregar, execute as funções iniciais
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Carrega as tarefas do usuário
             carregarTarefas();
             
-            // 2. Adiciona o "escutador" de clique no novo botão (Ação #14)
             document.getElementById('btn-criar-tarefa').addEventListener('click', function() {
                 criarNovaTarefa();
             });
         });
 
         // --- 1. FUNÇÃO PARA BUSCAR E EXIBIR AS TAREFAS (READ) ---
+        // (Modificada para o Kanban - Ação #1)
         async function carregarTarefas() {
             try {
-                // Chama a nossa API de "leitura"
                 const response = await fetch('/api/tarefas');
                 const data = await response.json();
 
-                const listaDiv = document.getElementById('lista-tarefas');
-                listaDiv.innerHTML = ''; // Limpa a mensagem "Carregando..."
+                // Seleciona os containers das colunas
+                const colFazer = document.getElementById('tasks-a-fazer');
+                const colAndamento = document.getElementById('tasks-em-andamento');
+                const colConcluido = document.getElementById('tasks-concluido');
 
-                // Itera sobre cada tarefa retornada pela API
+                // Limpa as colunas
+                colFazer.innerHTML = '';
+                colAndamento.innerHTML = '';
+                colConcluido.innerHTML = '';
+
                 data.tarefas.forEach(task => {
-                    // Extrai o nome da tarefa e o ID da página
                     const nomeTarefa = task.properties?.['Nome da Tarefa']?.title[0]?.plain_text || 'Tarefa sem nome';
-                    const statusAtual = task.properties?.Status?.select?.name || 'Sem Status';
+                    // Nota: Adicionamos 'Em Andamento' como um status possível
+                    const statusAtual = task.properties?.Status?.select?.name || 'A Fazer';
                     const pageId = task.id;
 
-                    // Cria o HTML para cada tarefa
+                    // Novo HTML para o "Card" da tarefa (UI Melhorada - Ação #2)
                     const tarefaHtml = `
-                        <div class="tarefa">
-                            <span>${nomeTarefa} (Status: <strong>${statusAtual}</strong>)</span>
+                        <div class="tarefa-card" id="task-${pageId}">
+                            <span>${nomeTarefa}</span>
                             <div class="botoes">
                                 <button class="btn-fazer" onclick="atualizarStatus('${pageId}', 'A Fazer')">A Fazer</button>
+                                <button class="btn-andamento" onclick="atualizarStatus('${pageId}', 'Em Andamento')">Andamento</button>
+
                                 <button class="btn-concluido" onclick="atualizarStatus('${pageId}', 'Concluído')">Concluído</button>
                             </div>
                         </div>
                     `;
-                    listaDiv.innerHTML += tarefaHtml;
-                });
 
-            } catch (error) {
-                console.error('Erro ao carregar tarefas:', error);
-                document.getElementById('lista-tarefas').innerText = 'Erro ao carregar tarefas.';
-            }
-        }
-
-        // --- 2. FUNÇÃO PARA ATUALIZAR O STATUS (UPDATE) ---
-        async function atualizarStatus(pageId, novoStatus) {
-            try {
-                // Chama a nossa rota de API de "update"
-                const response = await fetch('/api/tarefa/atualizar_status', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        page_id: pageId,
-                        new_status: novoStatus
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.sucesso) {
-                    // Se a API retornar sucesso, recarrega a lista de tarefas
-                    carregarTarefas();
-                } else {
-                    alert('Erro ao atualizar tarefa: ' + data.erro);
-                }
-
-            } catch (error) {
-                console.error('Erro ao atualizar status:', error);
-                alert('Erro de conexão ao atualizar status.');
-            }
-        }
-
-        // --- 3. FUNÇÃO PARA CRIAR NOVA TAREFA (CREATE) ---
-        // (Esta era a parte que faltava no seu JavaScript - Ação #14)
-        async function criarNovaTarefa() {
-            const inputTarefa = document.getElementById('nome-nova-tarefa');
-            const nomeTarefa = inputTarefa.value; // Pega o texto do campo
-
-            if (!nomeTarefa) {
-                alert('Por favor, digite o nome da tarefa.');
-                return;
-            }
-
-            try {
-                // Chama a nossa NOVA rota de API (/api/tarefa/criar)
-                const response = await fetch('/api/tarefa/criar', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        nome_tarefa: nomeTarefa // Envia o nome da tarefa no JSON
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.sucesso) {
-                    inputTarefa.value = ''; // Limpa o campo de texto
-                    carregarTarefas(); // Recarrega a lista para mostrar a nova tarefa
-                } else {
-                    alert('Erro ao criar tarefa: ' + data.erro);
-                }
-
-            } catch (error) {
-                console.error('Erro ao criar tarefa:', error);
-                alert('Erro de conexão ao criar tarefa.');
-            }
-        }
-    </script>
-</body>
-</html>
+                    // Distribui o card na coluna correta
+                    if (statusAtual === 'A Fazer') {
+                        colFazer.innerHTML += tarefaHtml;
+                    } else if (statusAtual === 'Em Andamento') {
+                        colAndamento.innerHTML += tarefaHtml;
+                    } else if (statusAtual === 'Concluído') {
