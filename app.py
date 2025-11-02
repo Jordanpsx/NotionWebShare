@@ -17,7 +17,6 @@ app = Flask(__name__)
 # --- Configuração do Banco de Dados e Autenticação ---
 
 # 1. Configurações de Segurança e Banco de Dados
-# Mude isso para qualquer frase aleatória
 app.config['SECRET_KEY'] = 'uma-chave-secreta-muito-dificil-de-adivinhar'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 
@@ -267,7 +266,7 @@ def atualizar_status():
         print(f"Erro inesperado: {e}")
         return jsonify({"erro": str(e)}), 500
 
-# --- NOVO: Rota de API para CRIAR uma nova tarefa ---
+# --- Rota de API para CRIAR uma nova tarefa ---
 @app.route("/api/tarefa/criar", methods=['POST'])
 @login_required
 def criar_tarefa():
@@ -317,6 +316,56 @@ def criar_tarefa():
         return jsonify({"erro": str(e)}), 500
     except Exception as e:
         print(f"Erro inesperado ao criar tarefa: {e}")
+        return jsonify({"erro": str(e)}), 500
+
+
+# --- NOVO: Rota de API para LER o conteúdo de uma tarefa ---
+@app.route("/api/tarefa/conteudo/<string:page_id>")
+@login_required
+def get_tarefa_conteudo(page_id):
+    if not notion:
+        return jsonify({"erro": "Cliente Notion não inicializado"}), 500
+
+    try:
+        # 1. Busca os "filhos" (blocos) da página
+        response = notion.blocks.children.list(block_id=page_id)
+        
+        conteudo_html_parts = []
+        results = response.get('results', [])
+
+        # 2. Itera sobre cada bloco
+        for block in results:
+            # 3. Por enquanto, só nos importamos com blocos do tipo "paragraph"
+            if block.get('type') == 'paragraph':
+                
+                texto_do_bloco_parts = []
+                # O texto de um parágrafo é um array de "rich_text"
+                for rt in block.get('paragraph', {}).get('rich_text', []):
+                    texto_do_bloco_parts.append(rt.get('plain_text', ''))
+                
+                # 4. Junta os textos e envolve em tags <p> para formatação
+                full_text = "".join(texto_do_bloco_parts)
+                if full_text:
+                    # Adiciona quebra de linha (Notion não usa <p> vazio)
+                    conteudo_html_parts.append(f"<p>{full_text}</p>")
+                else:
+                    # Se o parágrafo estiver vazio (Enter), adiciona uma quebra
+                    conteudo_html_parts.append("<br>")
+
+
+        # 5. Junta todos os parágrafos
+        html_final = "".join(conteudo_html_parts)
+        
+        if not html_final.strip(): # Verifica se o HTML está vazio ou só com <br>
+            html_final = "<p><i>Esta tarefa não possui instruções (texto) adicionais.</i></p>"
+        
+        return jsonify({"sucesso": True, "conteudo": html_final})
+
+    except notion_client.errors.APIResponseError as e:
+        print(f"Erro na API do Notion ao buscar blocos: {e}")
+        return jsonify({"erro": str(e)}), 500
+    except Exception as e:
+        print(f"Erro inesperado ao buscar blocos: {e}")
         return jsonify({"erro": str(e)}), 500
 
 # --------------------------------------------------------
